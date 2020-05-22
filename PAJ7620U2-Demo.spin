@@ -5,7 +5,7 @@
     Description: Demo of the PAJ7620U2 driver
     Copyright (c) 2020
     Started May 21, 2020
-    Updated May 21, 2020
+    Updated May 22, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -42,7 +42,11 @@ VAR
 PUB Main
 
     Setup
-    ser.hex(gesture.deviceid, 8)
+    repeat
+        ser.position(0, 5)
+        ser.dec(gesture.LastGesture)
+        time.msleep(1)
+
     flashled(led, 100)
 
 PUB Setup
