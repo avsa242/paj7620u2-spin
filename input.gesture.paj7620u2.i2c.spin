@@ -5,7 +5,7 @@
     Description: Driver for PAJ6520U2 Gesture Sensor
     Copyright (c) 2020
     Started May 21, 2020
-    Updated May 22, 2020
+    Updated May 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -20,18 +20,19 @@ CON
     DEF_HZ              = 100_000
     I2C_MAX_FREQ        = core#I2C_MAX_FREQ
 
-    REACTION_TIME       = 200
+' Delays used to make correct gesture detection easier
     ENTRY_TIME          = 400
     QUIT_TIME           = 800
 
+' Gestures recognized
     RIGHT               = 1
     LEFT                = 2
     UP                  = 3
     DOWN                = 4
     FORWARD             = 5
     BACKWARD            = 6
-    CLOCKWISE           = 7
-    CCLOCKWISE          = 8
+    CCLOCKWISE          = 7
+    CLOCKWISE           = 8
     WAVE                = 9
 
 VAR
@@ -55,30 +56,80 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
         if I2C_HZ =< core#I2C_MAX_FREQ
             if okay := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
-                time.MSleep (1)
-'                if i2c.present (SLAVE_WR)                       'Response from device?
-                    if DeviceID == core#DEVID_RESP
-                        return okay
+                time.MSleep (10)
+                repeat 2
+                    if i2c.Present (SLAVE_WR)                   'Response from device?
+                time.MSleep(1)
+                if DeviceID == core#DEVID_RESP
+                    Powered(TRUE)
+                    return okay
 
     return FALSE                                                'If we got here, something went wrong
 
 PUB Stop
 ' Put any other housekeeping code here required/recommended by your device before shutting down
-    i2c.terminate
+    Powered(FALSE)
+    i2c.Terminate
 
 PUB Defaults
 ' Set factory defaults
+    IntMask(%111111111)
 
 PUB DeviceID
 ' Read device identification
     readReg(core#PARTID_LSB, 2, @result)
 
 PUB Interrupt
-' Flag indicating one or more interrupts have asserted
+' Flag indicating one or more interrupts have asserted, as a 9-bit mask
+'   Mask:
+'       %876543210
+'       8 - Wave gesture
+'       7 - Counter-clockwise
+'       6 - Clockwise
+'       5 - Backward
+'       4 - Forward
+'       3 - Down
+'       2 - Up
+'       1 - Left
+'       0 - Right
     readReg(core#INTFLAG_1, 2, @result)
 
-PUB LastGesture | tmp
+PUB IntMask(mask) | tmp
+' Select which events will trigger an interrupt, as a 9-bit mask
+'   Mask:
+'       %876543210
+'       8 - Wave gesture
+'       7 - Counter-clockwise
+'       6 - Clockwise
+'       5 - Backward
+'       4 - Forward
+'       3 - Down
+'       2 - Up
+'       1 - Left
+'       0 - Right
+'   Any other value polls the chip and returns the current setting
+    tmp := $00
+    readReg(core#R_INT_1_EN, 2, @tmp)
+    case mask
+        %000000000..%111111111:
+        OTHER:
+            return tmp
 
+    writeReg(core#INTFLAG_1, 2, @mask)
+
+PUB LastGesture
+' Last gesture recognized by sensor
+'   Returns:
+'       Right               (1)
+'       Left                (2)
+'       Up                  (3)
+'       Down                (4)
+'       Forward             (5)
+'       Backward            (6)
+'       Clockwise           (7)
+'       Counter-Clockwise   (8)
+'       Wave                (9)
+'           or 0, if no gesture was detected
     case Interrupt
         core#FLAG_RIGHT:
             time.msleep(ENTRY_TIME)
@@ -137,13 +188,40 @@ PUB LastGesture | tmp
             return BACKWARD
 
         core#FLAG_CLOCKWISE:
-            return FORWARD
+            return CLOCKWISE
 
         core#FLAG_CCLOCKWISE:
-            return FORWARD
+            return CCLOCKWISE
 
-        OTHER: ' FLAG_WAVE
+        core#FLAG_WAVE:
             return WAVE
+
+        OTHER:
+            return 0
+
+PUB ObjBrightness
+' Object brightness
+'   Returns: 0..255
+    readReg(core#OBJECTAVGY, 1, @result)
+
+PUB ObjSize
+' Object size
+'   Returns: 0..4095
+    readReg(core#OBJECTSIZE_LSB, 2, @result)
+
+PUB Powered(enable) | tmp
+' Enable device power
+'   Valid values: TRUE (-1 or 1), FALSE (0)
+'   Any other value polls the chip and returns the current setting
+    tmp := $00
+    readReg(core#TG_ENH, 1, @tmp)
+    case ||enable
+        0, 1:
+            enable := (||enable) & $01
+        OTHER:
+            return tmp
+
+    writeReg(core#TG_ENH, 1, @enable)
 
 PUB Reset | tmp
 ' Reset the device
@@ -153,64 +231,52 @@ PUB Reset | tmp
 PRI readReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
 '' Read num_bytes from the slave device into the address stored in buff_addr
     case reg
-        $000..$003, $032..$03F, $040..$052, $054..$05F, $060, $061, $063..$06C, $080..$089, $08B..$09D, $09F..$0A5, $0A9, $0AA..$0DF, $0EE, $0EF:
-            cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg
+        $000..$003, $032..$03F, $040..$052, $054..$05F, $060, $061, $063..$06C, $080..$089, $08B..$09D, $09F..$0A5, $0A9, $0AA..$0DF, $0EE, $0EF, $100..$17F:   'XXX TRIM
+            cmd_packet.byte[0] := SLAVE_WR          '
+            cmd_packet.byte[1] := core#REGBANKSEL   '
+            cmd_packet.byte[2] := (reg >> 8) & 1    '
 
-            i2c.start
-            i2c.wr_block (@cmd_packet, 2)
-            i2c.start
-            i2c.write (SLAVE_RD)
-            i2c.rd_block (buff_addr, nr_bytes, TRUE)
-            i2c.stop
-            return
+            i2c.start                               '
+            i2c.wr_block(@cmd_packet, 3)            ' Bank select
+            i2c.stop                                '
 
-        $100..$104, $125..$129, $130..$135, $142, $144, $165..$16F, $171..$174, $17F:
-            cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := core#REGBANKSEL
-            cmd_packet.byte[2] := 1
-            cmd_packet.byte[3] := reg
+            cmd_packet.byte[0] := SLAVE_WR          '
+            cmd_packet.byte[1] := reg & $FF         '
+            i2c.start                               '
+            i2c.wr_block (@cmd_packet, 2)           ' Command/setup
 
-            i2c.start
-            i2c.wr_block (@cmd_packet, 4)
-            i2c.start
-            i2c.write (SLAVE_RD)
-            i2c.rd_block (buff_addr, nr_bytes, TRUE)
-            i2c.stop
-            return
+            i2c.start                               '
+            i2c.write (SLAVE_RD)                    '
+            i2c.rd_block (buff_addr, nr_bytes, TRUE)'
+            i2c.stop                                ' Read data
+
+            return TRUE
 
         OTHER:
-            return
+            return FALSE
 
 PRI writeReg(reg, nr_bytes, buff_addr) | cmd_packet, tmp
 '' Write num_bytes to the slave device from the address stored in buff_addr
-    case reg                                                    'Basic register validation
-        $003, $032..$03A, $03F, $040..$042, $046..$052, $05C..$05F, $061, $063..$06A, $080..$089, $08B..$09D, $09F..$0A5, $0A9, $0AA, $0AB, $0CC..$0D2, $0EE, $0EF:
-            cmd_packet.byte[0] := SLAVE_WR
-            cmd_packet.byte[1] := reg
-
-            i2c.start
-            i2c.wr_block (@cmd_packet, 2)
-            repeat tmp from 0 to nr_bytes-1
-                i2c.write (byte[buff_addr][tmp])
-            i2c.stop
-            return
-
-        $100..$104, $125..$129, $130..$135, $142, $144, $165..$16F, $171..$174, $17F, $1EF:
+    case reg
+        $003, $032..$03A, $03F, $040..$042, $046..$052, $05C..$05F, $061, $063..$06A, $080..$089, $08B..$09D, $09F..$0A5, $0A9, $0AA, $0AB, $0CC..$0D2, $0EE, $0EF, {}$060, $062, $06D..$075, $08A, $09E, $0A6..$0A8, $0E0..$0E9, $100..$1EF:   'XXX TRIM
             cmd_packet.byte[0] := SLAVE_WR
             cmd_packet.byte[1] := core#REGBANKSEL
-            cmd_packet.byte[2] := 1
-            cmd_packet.byte[3] := reg
+            cmd_packet.byte[2] := (reg >> 8) & 1
 
             i2c.start
-            i2c.wr_block (@cmd_packet, 4)
+            i2c.wr_block(@cmd_packet, 3)            ' Bank select
+            i2c.stop
+
+            cmd_packet.byte[0] := SLAVE_WR
+            cmd_packet.byte[1] := reg & $FF
+
+            i2c.start
+            i2c.wr_block (@cmd_packet, 2)           ' Command/setup
+
             repeat tmp from 0 to nr_bytes-1
                 i2c.write (byte[buff_addr][tmp])
             i2c.stop
-            return
-
-        OTHER:
-            return
+            return TRUE
 
 DAT
 {

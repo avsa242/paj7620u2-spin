@@ -5,7 +5,7 @@
     Description: Demo of the PAJ7620U2 driver
     Copyright (c) 2020
     Started May 21, 2020
-    Updated May 22, 2020
+    Updated May 23, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -39,20 +39,30 @@ VAR
 
     byte _ser_cog
 
-PUB Main
+PUB Main | gest, gestct
 
     Setup
-    repeat
-        ser.position(0, 5)
-        ser.dec(gesture.LastGesture)
-        time.msleep(1)
 
-    flashled(led, 100)
+    gestct := 0
+
+    repeat
+        ser.position(0, 4)
+        ser.str(string("Gesture: "))
+        repeat until gest := gesture.LastGesture
+            time.msleep(1)
+        ser.str(lookup(gest: string("RIGHT"), string("LEFT"), string("UP"), string("DOWN"), string("FORWARD"), string("BACKWARD"), string("CLOCKWISE"), string("COUNTER-CLOCKWISE"), string("WAVE")))
+        ser.clearline(ser#CLR_CUR_TO_END)
+        gestct++
+        ser.newline
+        ser.str(string("("))
+        ser.dec(gestct)
+        ser.str(string(" total gestures recognized)"))
+    FlashLED(LED, 100)
 
 PUB Setup
 
     repeat until _ser_cog := ser.StartRXTX (SER_RX, SER_TX, 0, SER_BAUD)
-    time.msleep(30)
+    time.MSleep(30)
     ser.Clear
     ser.Str(string("Serial terminal started", ser#CR, ser#LF))
 
@@ -60,10 +70,10 @@ PUB Setup
         ser.str(string("PAJ7620U2 driver started", ser#CR, ser#LF))
     else
         ser.str(string("PAJ7620U2 driver failed to start - halting", ser#CR, ser#LF))
-        gesture.stop
-        time.msleep(5)
-        ser.stop
-        flashled(LED, 500)
+        gesture.Stop
+        time.MSleep(5)
+        ser.Stop
+        FlashLED(LED, 500)
 
 #include "lib.utility.spin"
 

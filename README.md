@@ -6,7 +6,8 @@ This is a P8X32A/Propeller driver object for the PAJ7620U2 Gesture Sensor
 ## Salient Features
 
 * I2C connection at up to 400kHz
-* None yet...
+* Recognizes all 9 gestures supported by sensor (Up, Down, Left, Right, Forward, Backward, Clockwise, Counter-clockwise, Wave)
+*
 
 ## Requirements
 
@@ -14,13 +15,13 @@ This is a P8X32A/Propeller driver object for the PAJ7620U2 Gesture Sensor
 
 ## Compiler Compatibility
 
-* OpenSpin (tested with 1.00.81)
+* P1/SPIN1: OpenSpin (tested with 1.00.81)
 
 ## Limitations
 
 * Very early in development - may malfunction, or outright fail to build
-* Initial commit
+* Detection reliability of forward and backward gestures requires some "debouncing" - this adds a noticeable delay in detection
 
 ## TODO
 
-- [ ] TBD
+- [ ] Port to SPIN2

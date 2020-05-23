@@ -113,6 +113,7 @@ CON
         FLAG_WAVE                   = 1 << 8
 
     INTFLAG_2                       = $044
+'        FLAG_WAVE                   = 1 << 0   ' Combined with above for simplicity, instead
 
 ' Gesture mode controls
     R_LIGHTTHD                      = $083
@@ -157,7 +158,7 @@ CON
     OBJECTCENTERX_MSB               = $0AD
     OBJECTCENTERY_LSB               = $0AE
     OBJECTCENTERY_MSB               = $0AF
-    OBJECTAVGY                      = $0B0
+    OBJECTAVGY                      = $0B0  ' object brightness
     OBJECTSIZE_LSB                  = $0B1
     OBJECTSIZE_MSB                  = $0B2
     GX                              = $0B3
@@ -326,7 +327,9 @@ CON
         VERSION_RESP                = $01
 
 ' Suspend/reset
-    SW_SUSPEND_ENL                  = $003
+    SW_SUSPEND_ENL                  = $003  'I2C suspend
+'       0 - no suspend
+'       1 - suspend (def)
     R_REGBANK_RESET                 = $0EE
     TGREGBANK_SWRSTN                = $0EE
     DMSREGBANK_SWRSTN               = $0EE
