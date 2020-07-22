@@ -349,7 +349,7 @@ CON
     DSP_TESTOBJ_NUM                 = $0E8
     DSP_TEST_NOISE_ENH              = $0E9
 
-#ifndef __propeller2
+#ifndef __propeller2__
 PUB Null
 '' This is not a top-level object
 #endif
