@@ -75,11 +75,11 @@ PUB Defaults{}
 ' Set factory defaults
     intmask(%111111111)
 
-PUB DeviceID{}
+PUB DeviceID{}: id
 ' Read device identification
-    readreg(core#PARTID_LSB, 2, @result)
+    readreg(core#PARTID_LSB, 2, @id)
 
-PUB Interrupt{}
+PUB Interrupt{}: int_src
 ' Flag indicating one or more interrupts have asserted, as a 9-bit mask
 '   Mask:
 '       %876543210
@@ -92,7 +92,7 @@ PUB Interrupt{}
 '       2 - Up
 '       1 - Left
 '       0 - Right
-    readreg(core#INTFLAG_1, 2, @result)
+    readreg(core#INTFLAG_1, 2, @int_src)
 
 PUB IntMask(mask) | tmp
 ' Select which events will trigger an interrupt, as a 9-bit mask
@@ -108,16 +108,15 @@ PUB IntMask(mask) | tmp
 '       1 - Left
 '       0 - Right
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readreg(core#R_INT_1_EN, 2, @tmp)
     case mask
         %000000000..%111111111:
+            writereg(core#INTFLAG_1, 2, @mask)
         other:
+            tmp := 0
+            readreg(core#R_INT_1_EN, 2, @tmp)
             return tmp
 
-    writereg(core#INTFLAG_1, 2, @mask)
-
-PUB LastGesture{}
+PUB LastGesture{}: gest
 ' Last gesture recognized by sensor
 '   Returns:
 '       Right               (1)
@@ -142,7 +141,6 @@ PUB LastGesture{}
                     return BACKWARD
                 other:
                     return RIGHT
-
         core#FLAG_LEFT:
             time.msleep(ENTRY_TIME)
             case interrupt{}
@@ -154,7 +152,6 @@ PUB LastGesture{}
                     return BACKWARD
                 other:
                     return LEFT
-
         core#FLAG_UP:
             time.msleep(ENTRY_TIME)
             case interrupt{}
@@ -166,7 +163,6 @@ PUB LastGesture{}
                     return BACKWARD
                 other:
                     return UP
-
         core#FLAG_DOWN:
             time.msleep(ENTRY_TIME)
             case interrupt{}
@@ -178,54 +174,48 @@ PUB LastGesture{}
                     return BACKWARD
                 other:
                     return DOWN
-
         core#FLAG_FORWARD:
             time.msleep(QUIT_TIME)
             return FORWARD
-
         core#FLAG_BACKWARD:
             time.msleep(QUIT_TIME)
             return BACKWARD
-
         core#FLAG_CLOCKWISE:
             return CLOCKWISE
-
         core#FLAG_CCLOCKWISE:
             return CCLOCKWISE
-
         core#FLAG_WAVE:
             return WAVE
-
         other:
             return 0
 
-PUB ObjBrightness{}
+PUB ObjBrightness{}: obj_brt
 ' Object brightness
 '   Returns: 0..255
-    readreg(core#OBJECTAVGY, 1, @result)
+    readreg(core#OBJECTAVGY, 1, @obj_brt)
 
-PUB ObjSize{}
+PUB ObjSize{}: sz
 ' Object size
 '   Returns: 0..4095
-    readreg(core#OBJECTSIZE_LSB, 2, @result)
+    readreg(core#OBJECTSIZE_LSB, 2, @sz)
 
-PUB Powered(enable) | tmp
+PUB Powered(state): curr_state
 ' Enable device power
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    tmp := $00
-    readreg(core#TG_ENH, 1, @tmp)
-    case ||(enable)
+    curr_state := 0
+    readreg(core#TG_ENH, 1, @curr_state)
+    case ||(state)
         0, 1:
-            enable := ||(enable) & $01
+            state := ||(state) & 1
         other:
-            return tmp
+            return curr_state & 1
 
-    writereg(core#TG_ENH, 1, @enable)
+    writereg(core#TG_ENH, 1, @state)
 
 PUB Reset{} | tmp
 ' Reset the device
-    tmp := $01
+    tmp := 1
     writereg(core#R_REGBANK_RESET, 1, @tmp)
 
 PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
