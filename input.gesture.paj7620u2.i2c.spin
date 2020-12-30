@@ -5,7 +5,7 @@
     Description: Driver for PAJ6520U2 Gesture Sensor
     Copyright (c) 2020
     Started May 21, 2020
-    Updated Dec 29, 2020
+    Updated Dec 30, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -38,7 +38,7 @@ CON
 OBJ
 
     i2c : "com.i2c"
-    core: "core.con.paj7620u2.spin"
+    core: "core.con.paj7620u2"
     time: "time"
 
 PUB Null{}
@@ -230,11 +230,11 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
             cmd_pkt.byte[0] := SLAVE_WR         '
             cmd_pkt.byte[1] := reg_nr & $FF     '
             i2c.start{}                         '
-            i2c.wr_block (@cmd_pkt, 2)          ' Command/setup
+            i2c.wr_block(@cmd_pkt, 2)           ' Command/setup
 
             i2c.start{}                         '
-            i2c.write (SLAVE_RD)                '
-            i2c.rd_block (ptr_buff, nr_bytes, TRUE)
+            i2c.write(SLAVE_RD)                 '
+            i2c.rd_block(ptr_buff, nr_bytes, TRUE)
             i2c.stop{}                          ' Read data
 
             return TRUE
@@ -256,9 +256,9 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := reg_nr & $FF
             i2c.start{}
-            i2c.wr_block (@cmd_pkt, 2)          ' Command/setup
+            i2c.wr_block(@cmd_pkt, 2)           ' Command/setup
             repeat tmp from 0 to nr_bytes-1
-                i2c.write (byte[ptr_buff][tmp])
+                i2c.write(byte[ptr_buff][tmp])
             i2c.stop{}
             return TRUE
 
