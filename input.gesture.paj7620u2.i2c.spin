@@ -35,9 +35,6 @@ CON
     CLOCKWISE           = 8
     WAVE                = 9
 
-VAR
-
-
 OBJ
 
     i2c : "com.i2c"
@@ -49,7 +46,7 @@ PUB Null{}
 
 PUB Start{}: okay
 ' Start using "standard" Propeller I2C pins and 100kHz
-    okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ)
+    okay := startx(DEF_SCL, DEF_SDA, DEF_HZ)
 
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
 ' Start using custom settings
@@ -94,7 +91,7 @@ PUB Interrupt{}: int_src
 '       0 - Right
     readreg(core#INTFLAG_1, 2, @int_src)
 
-PUB IntMask(mask) | tmp
+PUB IntMask(mask): curr_mask
 ' Select which events will trigger an interrupt, as a 9-bit mask
 '   Mask:
 '       %876543210
@@ -112,9 +109,9 @@ PUB IntMask(mask) | tmp
         %000000000..%111111111:
             writereg(core#INTFLAG_1, 2, @mask)
         other:
-            tmp := 0
-            readreg(core#R_INT_1_EN, 2, @tmp)
-            return tmp
+            curr_mask := 0
+            readreg(core#R_INT_1_EN, 2, @curr_mask)
+            return curr_mask
 
 PUB LastGesture{}: gest
 ' Last gesture recognized by sensor
@@ -226,22 +223,21 @@ PRI readReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
             cmd_pkt.byte[1] := core#REGBANKSEL
             cmd_pkt.byte[2] := (reg_nr >> 8) & 1
 
-            i2c.start                           '
+            i2c.start{}                         '
             i2c.wr_block(@cmd_pkt, 3)           ' Bank select
-            i2c.stop                            '
+            i2c.stop{}                          '
 
             cmd_pkt.byte[0] := SLAVE_WR         '
             cmd_pkt.byte[1] := reg_nr & $FF     '
-            i2c.start                           '
+            i2c.start{}                         '
             i2c.wr_block (@cmd_pkt, 2)          ' Command/setup
 
-            i2c.start                           '
+            i2c.start{}                         '
             i2c.write (SLAVE_RD)                '
             i2c.rd_block (ptr_buff, nr_bytes, TRUE)
-            i2c.stop                            ' Read data
+            i2c.stop{}                          ' Read data
 
             return TRUE
-
         other:
             return FALSE
 
@@ -253,17 +249,17 @@ PRI writeReg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt, tmp
             cmd_pkt.byte[1] := core#REGBANKSEL
             cmd_pkt.byte[2] := (reg_nr >> 8) & 1
 
-            i2c.start
+            i2c.start{}
             i2c.wr_block(@cmd_pkt, 3)           ' Bank select
-            i2c.stop
+            i2c.stop{}
 
             cmd_pkt.byte[0] := SLAVE_WR
             cmd_pkt.byte[1] := reg_nr & $FF
-            i2c.start
+            i2c.start{}
             i2c.wr_block (@cmd_pkt, 2)          ' Command/setup
             repeat tmp from 0 to nr_bytes-1
                 i2c.write (byte[ptr_buff][tmp])
-            i2c.stop
+            i2c.stop{}
             return TRUE
 
 DAT

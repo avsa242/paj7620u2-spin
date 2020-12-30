@@ -5,7 +5,7 @@
     Description: Demo of the PAJ7620U2 driver
     Copyright (c) 2020
     Started May 21, 2020
-    Updated Dec 29, 2020
+    Updated Dec 30, 2020
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -43,7 +43,7 @@ PUB Main{} | gest, gestct
 
         ' wait for gesture to be recognized
         repeat until gest := gesture.lastgesture{}
-'            time.msleep(1)
+            time.msleep(1)
 
         ser.str(lookup(gest: string("RIGHT"), string("LEFT"), string("UP"),{
 }       string("DOWN"), string("FORWARD"), string("BACKWARD"),{
@@ -51,9 +51,7 @@ PUB Main{} | gest, gestct
         ser.clearline{}
         gestct++
         ser.newline{}
-        ser.str(string("("))
-        ser.dec(gestct)
-        ser.str(string(" total gestures recognized)"))
+        ser.printf1(string("(%d total gestures recognized)"), gestct)
 
 PUB Setup{}
 
