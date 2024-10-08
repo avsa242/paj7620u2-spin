@@ -1,34 +1,25 @@
 {
-    --------------------------------------------
-    Filename: PAJ7620U2-Demo.spin2
-    Author: Jesse Burt
-    Description: Demo of the PAJ7620U2 driver (P2 version)
-    Copyright (c) 2022
-    Started Nov 27, 2020
-    Updated Nov 27, 2022
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       PAJ7620U2-Demo.spin2
+    Description:    Demo of the PAJ7620U2 driver
+    Author:         Jesse Burt
+    Started:        May 21, 2020
+    Updated:        Oct 8, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 
 CON
 
-    _clkfreq    = cfg._clkfreq_def
-    _xtlfreq    = cfg._xtlfreq
+    _clkfreq    = 180_000_000
+    _xtlfreq    = 20_000_000
 
-' -- User-modifiable constants
-    LED         = cfg.LED1
-    SER_BAUD    = 2_000_000
-
-    SCL_PIN     = 0
-    SDA_PIN     = 1
-    I2C_FREQ    = 400_000
-' --
 
 OBJ
 
-    cfg     : "boardcfg.p2eval"
-    ser     : "com.serial.terminal.ansi"
-    gesture : "input.gesture.paj7620u2"
+    ser:        "com.serial.terminal.ansi" | SER_BAUD=2_000_000
+    gesture:    "input.gesture.paj7620u2" | SCL=28, SDA=29, I2C_FREQ=100_000
+
 
 PUB main() | gest, gestct
 
@@ -42,32 +33,35 @@ PUB main() | gest, gestct
         ser.str(@"Gesture: ")
 
         { wait for gesture to be recognized }
-        repeat until gest := gesture.last_gesture()
+        repeat
+            gest := gesture.last_gesture()
+        until ( gest <> 0 )
 
-        ser.str(lookup(gest: @"RIGHT", @"LEFT", @"UP", @"DOWN", {
-}                            @"FORWARD", @"BACKWARD", @"CLOCKWISE", {
-}                            @"COUNTER-CLOCKWISE", @"WAVE"))
+        ser.str( lookup(gest:   @"RIGHT", @"LEFT", @"UP", @"DOWN", @"FORWARD", @"BACKWARD", ...
+                                @"CLOCKWISE", @"COUNTER-CLOCKWISE", @"WAVE") )
         ser.clear_line()
         gestct++
         ser.newline()
         ser.printf(@"(%d total gestures recognized)", gestct)
 
+
 PUB setup()
 
-    ser.start(SER_BAUD)
-    waitms(30)
+    ser.start()
+
     ser.clear()
     ser.strln(@"Serial terminal started")
 
-    if gesture.startx(SCL_PIN, SDA_PIN, I2C_FREQ)
+    if ( gesture.start() )
         ser.strln(@"PAJ7620U2 driver started")
     else
         ser.strln(@"PAJ7620U2 driver failed to start - halting")
         repeat
 
+
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

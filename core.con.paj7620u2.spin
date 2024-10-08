@@ -1,13 +1,12 @@
 {
-    --------------------------------------------
-    Filename: core.con.paj7620u2.spin
-    Author: Jesse Burt
-    Description: PAJ7620U2-specific constants
-    Copyright (c) 2021
-    Started May 21, 2020
-    Updated May 19, 2021
-    See end of file for terms of use.
-    --------------------------------------------
+----------------------------------------------------------------------------------------------------
+    Filename:       core.con.paj7620u2.spin
+    Description:    PAJ7620U2-specific constants
+    Author:         Jesse Burt
+    Started:        May 21, 2020
+    Updated:        Oct 8, 2024
+    Copyright (c) 2024 - See end of file for terms of use.
+----------------------------------------------------------------------------------------------------
 }
 
 CON
@@ -350,12 +349,14 @@ CON
     DSP_TESTOBJ_NUM                 = $0E8
     DSP_TEST_NOISE_ENH              = $0E9
 
-PUB null{}
+
+PUB null()
 ' This is not a top-level object
+
 
 DAT
 {
-Copyright 2022 Jesse Burt
+Copyright 2024 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
