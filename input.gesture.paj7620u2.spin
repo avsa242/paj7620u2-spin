@@ -85,8 +85,7 @@ PUB preset_active()
 
 PUB dev_id(): id
 ' Read device identification
-    id := 0
-    readreg(core.PARTID_LSB, 2, @id)
+    return readreg(core.PARTID_LSB, 2)
 
 
 PUB interrupt(): int_src
@@ -102,8 +101,7 @@ PUB interrupt(): int_src
 '       2 - Up
 '       1 - Left
 '       0 - Right
-    int_src := 0
-    readreg(core.INTFLAG_1, 2, @int_src)
+    return readreg(core.INTFLAG_1, 2)
 
 
 PUB int_mask(mask): curr_mask
@@ -122,11 +120,9 @@ PUB int_mask(mask): curr_mask
 '   Any other value polls the chip and returns the current setting
     case mask
         %000000000..%111111111:
-            writereg(core.INTFLAG_1, 2, @mask)
+            writereg(core.INTFLAG_1, mask, 2)
         other:
-            curr_mask := 0
-            readreg(core.R_INT_1_EN, 2, @curr_mask)
-            return curr_mask
+            return readreg(core.R_INT_1_EN, 2)
 
 
 PUB last_gesture(): gest
@@ -206,39 +202,38 @@ PUB last_gesture(): gest
 PUB obj_brightness(): obj_brt
 ' Object brightness
 '   Returns: 0..255
-    obj_brt := 0
-    readreg(core.OBJECTAVGY, 1, @obj_brt)
+    return readreg(core.OBJECTAVGY)
 
 
 PUB obj_size(): sz
 ' Object size
 '   Returns: 0..4095
-    sz := 0
-    readreg(core.OBJECTSIZE_LSB, 2, @sz)
+    return readreg(core.OBJECTSIZE_LSB, 2)
 
 
 PUB powered(state): curr_state
 ' Enable device power
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    curr_state := 0
-    readreg(core.TG_ENH, 1, @curr_state)
     case ||(state)
         0, 1:
-            state := ||(state) & 1
-            writereg(core.TG_ENH, 1, @state)
+            writereg(core.TG_ENH, (||(state) & 1) )
         other:
-            return curr_state & 1
+            return (readreg(core.TG_ENH) & 1)
 
 
-PUB reset() | tmp
+PUB reset()
 ' Reset the device
-    tmp := 1
-    writereg(core.R_REGBANK_RESET, 1, @tmp)
+    writereg(core.R_REGBANK_RESET, 1)
 
 
-PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-'' Read num_bytes from the slave device into the address stored in ptr_buff
+PRI readreg(reg_nr, nr_bytes=1): v | cmd_pkt
+' Read data from device register
+'   reg_nr:     register to read
+'   nr_bytes:   number of bytes/consecutive registers to read (optional; default is 1)
+'   Returns:
+'       register value on success
+'       -1 on failure
     case reg_nr
         $000..$003, $032..$03F, $040..$052, $054..$05F, $060, $061, $063..$06C, $080..$089, ...
         $08B..$09D, $09F..$0A5, $0A9, $0AA..$0DF, $0EE, $0EF, $100..$17F:   'XXX TRIM
@@ -255,16 +250,20 @@ PRI readreg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
             i2c.start()                         '
             i2c.wrblock_lsbf(@cmd_pkt, 2)       ' Command/setup
 
+            v := 0
             i2c.start()                         '
             i2c.write(SLAVE_RD)                 '
-            i2c.rdblock_lsbf(ptr_buff, nr_bytes, i2c.NAK)
+            i2c.rdblock_lsbf(@v, nr_bytes, i2c.NAK)
             i2c.stop()                          ' Read data
         other:
-            return
+            return -1                           ' invalid register
 
 
-PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
-' Write nr_bytes from ptr_buff to slave device
+PRI writereg(reg_nr, val, nr_bytes=1): s | cmd_pkt
+' Write data to device register
+'   reg_nr:     register to write
+'   val:        value to write to register
+'   nr_bytes:   number of bytes/consecutive registers to write (optional; default is 1)
     case reg_nr
         $003, $032..$03A, $03F, $040..$042, $046..$052, $05C..$05F, $061, $063..$06A, ...
         $080..$089, $08B..$09D, $09F..$0A5, $0A9, $0AA, $0AB, $0CC..$0D2, $0EE, $0EF, $060, ...
@@ -281,9 +280,10 @@ PRI writereg(reg_nr, nr_bytes, ptr_buff) | cmd_pkt
             cmd_pkt.byte[1] := reg_nr & $FF
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)       ' Command/setup
-            i2c.wrblock_lsbf(ptr_buff, nr_bytes)
+            i2c.wrblock_lsbf(@val, nr_bytes)
             i2c.stop()
-
+        other:
+            return -1
 
 DAT
 {
