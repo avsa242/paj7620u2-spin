@@ -4,8 +4,8 @@
     Description:    Demo of the PAJ7620U2 driver
     Author:         Jesse Burt
     Started:        May 21, 2020
-    Updated:        Oct 8, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        May 8, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -18,7 +18,7 @@ CON
 OBJ
 
     ser:        "com.serial.terminal.ansi" | SER_BAUD=2_000_000
-    gesture:    "input.gesture.paj7620u2" | SCL=28, SDA=29, I2C_FREQ=100_000
+    gesture:    "input.gesture.paj7620u2" | SCL=0, SDA=1, I2C_FREQ=100_000
 
 
 PUB main() | gest, gestct
@@ -61,7 +61,7 @@ PUB setup()
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,

@@ -4,8 +4,8 @@
     Description:    Driver for PAJ6520U2 Gesture Sensor
     Author:         Jesse Burt
     Started:        May 21, 2020
-    Updated:        Oct 8, 2024
-    Copyright (c) 2024 - See end of file for terms of use.
+    Updated:        May 8, 2025
+    Copyright (c) 2025 - See end of file for terms of use.
 ----------------------------------------------------------------------------------------------------
 }
 
@@ -87,7 +87,7 @@ PUB dev_id(): id
     return readreg(core.PARTID_LSB, 2)
 
 
-PUB interrupt(): int_src
+PUB interrupt(): i
 ' Flag indicating one or more interrupts have asserted, as a 9-bit mask
 '   Mask:
 '       %876543210
@@ -103,7 +103,7 @@ PUB interrupt(): int_src
     return readreg(core.INTFLAG_1, 2)
 
 
-PUB int_mask(mask=-2): curr_mask
+PUB int_mask(m=-2): c
 ' Select which events will trigger an interrupt, as a 9-bit mask
 '   Mask:
 '       %876543210
@@ -117,14 +117,14 @@ PUB int_mask(mask=-2): curr_mask
 '       1 - Left
 '       0 - Right
 '   Any other value polls the chip and returns the current setting
-    case mask
+    case m
         %000000000..%111111111:
-            writereg(core.INTFLAG_1, mask, 2)
+            writereg(core.INTFLAG_1, m, 2)
         other:
             return readreg(core.R_INT_1_EN, 2)
 
 
-PUB last_gesture(): gest
+PUB last_gesture(): g
 ' Last gesture recognized by sensor
 '   Returns:
 '       Right               (1)
@@ -198,7 +198,7 @@ PUB last_gesture(): gest
             return 0
 
 
-PUB obj_brightness(): obj_brt
+PUB obj_brightness(): b
 ' Object brightness
 '   Returns: 0..255
     return readreg(core.OBJECTAVGY)
@@ -210,13 +210,13 @@ PUB obj_size(): sz
     return readreg(core.OBJECTSIZE_LSB, 2)
 
 
-PUB powered(state=-2): curr_state
+PUB powered(s=-2): c
 ' Enable device power
 '   Valid values: TRUE (-1 or 1), FALSE (0)
 '   Any other value polls the chip and returns the current setting
-    case abs(state)
+    case abs(s)
         0, 1:
-            writereg(core.TG_ENH, (abs(state) & 1) )
+            writereg(core.TG_ENH, (abs(s) & 1) )
         other:
             return (readreg(core.TG_ENH) & 1)
 
@@ -226,7 +226,7 @@ PUB reset()
     writereg(core.R_REGBANK_RESET, 1)
 
 
-PRI readreg(reg_nr, nr_bytes=1): v | cmd_pkt
+PRI readreg(reg_nr, len=1): v | cmd_pkt
 ' Read data from device register
 '   reg_nr:     register to read
 '   nr_bytes:   number of bytes/consecutive registers to read (optional; default is 1)
@@ -252,13 +252,13 @@ PRI readreg(reg_nr, nr_bytes=1): v | cmd_pkt
             v := 0
             i2c.start()                         '
             i2c.write(SLAVE_RD)                 '
-            i2c.rdblock_lsbf(@v, nr_bytes, i2c.NAK)
+            i2c.rdblock_lsbf(@v, len, i2c.NAK)
             i2c.stop()                          ' Read data
         other:
             return -1                           ' invalid register
 
 
-PRI writereg(reg_nr, val, nr_bytes=1): s | cmd_pkt
+PRI writereg(reg_nr, val, len=1): s | cmd_pkt
 ' Write data to device register
 '   reg_nr:     register to write
 '   val:        value to write to register
@@ -279,14 +279,14 @@ PRI writereg(reg_nr, val, nr_bytes=1): s | cmd_pkt
             cmd_pkt.byte[1] := reg_nr & $FF
             i2c.start()
             i2c.wrblock_lsbf(@cmd_pkt, 2)       ' Command/setup
-            i2c.wrblock_lsbf(@val, nr_bytes)
+            i2c.wrblock_lsbf(@val, len)
             i2c.stop()
         other:
             return -1
 
 DAT
 {
-Copyright 2024 Jesse Burt
+Copyright 2025 Jesse Burt
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 associated documentation files (the "Software"), to deal in the Software without restriction,
